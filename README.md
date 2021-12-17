@@ -1,2 +1,2 @@
-# mutliagent-rl
+# multiagent-rl
 Repository for experimental development of multi-agent reinformcement learning algorithms.
