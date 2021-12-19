@@ -1,3 +1,4 @@
+from collections import namedtuple
 import numpy as np
 
 import pdb
@@ -5,10 +6,22 @@ import pdb
 np.random.seed(123)
 
 
-class replay_buffer:
-    def __init__(self, max_memories=10000):
+class ReplayBuffer:
+    def __init__(self, agents, max_memories=10000):
+        self._agents = agents
         self.max_memories = max_memories
         self.reset()
+
+    @property
+    def replay_size(self):
+        return len(self.replay)
+
+    @property
+    def agents(self):
+        return self._agents
+
+    def reset(self):
+        self.replay = []
 
     def sample(self, batch_size):
         indices = np.arange(self.replay_size)
@@ -21,10 +34,3 @@ class replay_buffer:
             # Pop earlier episodes as replay becomes larger than max episodes
             # desired.
             self.replay = self.replay[-self.max_memories :]
-
-    def reset(self):
-        self.replay = []
-
-    @property
-    def replay_size(self):
-        return len(self.replay)

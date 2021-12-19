@@ -3,6 +3,7 @@ import numpy as np
 from pettingzoo.atari import pong_v2
 
 from multiagent.trainer import AgentTrainer
+from multiagent.data.replay import ReplayBuffer
 
 from multiagent.agents.actor_critic import a2c
 
@@ -27,7 +28,12 @@ def initialize_agents(env, device):
 def main(args):
     env = make_env()
     agents = initialize_agents(env, args.device)
-    trainer = AgentTrainer(agents, env)
+    replay = ReplayBuffer(env.possible_agents, max_memories=int(1e5))
+    trainer = AgentTrainer(agents, env, replay)
+
+    for episode in range(args.number_episodes):
+        print("Episode {}".format(episode))
+        trainer.train_episode()
 
 
 def parse_args():
