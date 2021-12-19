@@ -27,19 +27,18 @@ class AgentTrainer:
     def train_episode(self):
         self.run_episode()
 
-    def run_episode(self, render: bool = False):
+    def run_episode(self):
         self._env.reset()
         memory = namedtuple("Memory", self.replay_keys)
 
         for agent in self._env.agent_iter():
             print(agent)
-            observation, reward, done, info = self._env.last()
-            if done:
+            state_t, reward_t, done_t, info_t = self._env.last()
+            if done_t:
                 break
             self._env.step(self._env.action_space(agent).sample())
 
-            if render:
-                self._env.render()
+            pdb.set_trace()
 
         pdb.set_trace()
 
