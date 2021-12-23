@@ -7,9 +7,9 @@ torch.manual_seed(123)
 import pdb
 
 
-class actor_model(torch.nn.Module):
+class fc_model(torch.nn.Module):
     def __init__(self, input_size, output_size, hidden=128):
-        super(actor_model, self).__init__()
+        super(fc_model, self).__init__()
 
         self.fc1 = torch.nn.Linear(input_size, hidden)
         self.fc2 = torch.nn.Linear(hidden, hidden)
@@ -23,30 +23,6 @@ class actor_model(torch.nn.Module):
         x = F.relu(self.fc1(inp))
         x = F.relu(self.fc2(x))
         return Categorical(F.softmax(self.fc3(x), dim=-1))
-
-    def save_weights(self, path):
-        return NotImplemented
-
-    def load_weights(self, path):
-        return NotImplemented
-
-
-class critic_model(torch.nn.Module):
-    def __init__(self, input_size, hidden=128):
-        super(critic_model, self).__init__()
-
-        self.fc1 = torch.nn.Linear(input_size, hidden)
-        self.fc2 = torch.nn.Linear(hidden, hidden)
-        self.fc3 = torch.nn.Linear(hidden, 1)
-
-        torch.nn.init.xavier_uniform_(self.fc1.weight)
-        torch.nn.init.xavier_uniform_(self.fc2.weight)
-        torch.nn.init.xavier_uniform_(self.fc3.weight)
-
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        return self.fc3(x)
 
     def save_weights(self, path):
         return NotImplemented
