@@ -23,8 +23,6 @@ class AgentTrainer:
         self.update_interval = update_interval
         self._state_transformations = state_transformations
 
-        self.time: int = 1
-
     @property
     def agents(self):
         return self._agents
@@ -43,6 +41,7 @@ class AgentTrainer:
 
     def train_episode(self):
         self.env.reset()
+        time: int = 1
         memories = {agent: [] for agent in self.agent_keys}
         for agent in self.env.agent_iter():
             memory = self.run_step(self.env, agent)
@@ -54,11 +53,11 @@ class AgentTrainer:
             # Assumption if iterating agent is last agent in agent keys to
             # increment episode time being tracked.
             if agent == self.agent_keys[-1]:
-                self.time += 1
+                time += 1
 
-            if (
-                self.time % self.update_interval == 0
-            ) and self.replay_buffers.get(agent).is_enough_samples():
+            if (time % self.update_interval == 0) and self.replay_buffers.get(
+                agent
+            ).is_enough_samples():
                 self._train_samples(agent)
 
         self._add_expected_to_replay(
@@ -67,21 +66,22 @@ class AgentTrainer:
 
     def run_step(self, env, agent):
         state_t, reward_t, done_t, info_t = env.last()
+        state_t = self.transform_state(state_t)
         if done_t:
             return False
 
-        # replace this with policy
-        action_t = env.action_space(agent).sample()
+        action_t = self.agents[agent].policy(state_t)
         env.step(action_t)
 
         state_tp1 = env.observe(agent)
-        action_tp1 = env.action_space(agent).sample()
+        state_tp1 = self.transform_state(state_tp1)
+        action_tp1 = self.agents[agent].policy(state_tp1)
 
         return [
-            self.transform_state(state_t),
+            state_t,
             action_t,
             reward_t,
-            self.transform_state(state_tp1),
+            state_tp1,
             action_tp1,
             done_t,
         ]

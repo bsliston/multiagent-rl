@@ -70,11 +70,11 @@ def parse_args():
         description="Arguments for training pong environment"
     )
     parser.add_argument("--device", type=str, default="cpu")
-    parser.add_argument("--batch-size", type=int, default=8)
+    parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--learning-rate", type=float, default=5e-4)
     parser.add_argument("--gamma", type=float, default=0.99)
-    parser.add_argument("--max-replay", type=int, default=int(1e4))
-    parser.add_argument("--update-interval", type=int, default=4)
+    parser.add_argument("--max-replay", type=int, default=int(1e5))
+    parser.add_argument("--update-interval", type=int, default=64)
     parser.add_argument("--number-episodes", type=int, default=int(1e5))
 
     return parser.parse_args()

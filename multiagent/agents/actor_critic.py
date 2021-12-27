@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from torch import nn
+from torch.distributions import categorical
 
 from multiagent.types import BatchMemories
 from multiagent.common.utils import torch_to_numpy, numpy_to_torch_float
@@ -21,7 +22,9 @@ class a2c:
 
     def reset_models(self):
         self.critic = fc_model(self.input_size, 1).to(self.device)
-        self.actor = fc_model(self.input_size, self.output_size).to(self.device)
+        self.actor = fc_model(
+            self.input_size, self.output_size, categorical=True
+        ).to(self.device)
 
         self.critic_optimizer = torch.optim.Adam(
             self.critic.parameters(), lr=self.learning_rate
@@ -41,7 +44,7 @@ class a2c:
         value_t = self.critic(numpy_to_torch_float(state_t, device=self.device))
         expected_return = numpy_to_torch_float(
             expected_return_t, device=self.device
-        ).unsqueeze(1)
+        )
         advantage = expected_return - value_t
 
         # compute critic loss

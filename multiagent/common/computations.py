@@ -15,7 +15,7 @@ def compute_expected_return(
         expected_returns[n_rewards - ri - 1] = expected_return
 
     # Normalize expected returns per episode for stability during training usage
-    # (e.g. advantage objective training).
+    # (e.g. advantage objective objective training).
     if normalize:
         expected_returns = (expected_returns - np.average(expected_returns)) / (
             np.std(expected_returns) + 1e-8
