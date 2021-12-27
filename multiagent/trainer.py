@@ -1,6 +1,9 @@
-import abc
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 import numpy as np
+
+from multiagent.types import BatchMemories
+from multiagent.common.computations import compute_expected_return
+from multiagent.common.transformations import normalize_array
 
 import pdb
 
@@ -19,6 +22,7 @@ class AgentTrainer:
         self._replay_buffers = replay_buffers
         self.update_interval = update_interval
         self._state_transformations = state_transformations
+
         self.time: int = 1
 
     @property
@@ -39,21 +43,32 @@ class AgentTrainer:
 
     def train_episode(self):
         self.env.reset()
+        memories = {agent: [] for agent in self.agent_keys}
         for agent in self.env.agent_iter():
-            self.run_step(self.env, agent)
+            memory = self.run_step(self.env, agent)
+            if memory:
+                memories[agent].append(memory)
+            else:
+                break
 
             # Assumption if iterating agent is last agent in agent keys to
             # increment episode time being tracked.
             if agent == self.agent_keys[-1]:
                 self.time += 1
 
-            if self.time % self.update_interval == 0:
+            if (
+                self.time % self.update_interval == 0
+            ) and self.replay_buffers.get(agent).is_enough_samples():
                 self._train_samples(agent)
+
+        self._add_expected_to_replay(
+            {key: np.array(val) for key, val in memories.items()}
+        )
 
     def run_step(self, env, agent):
         state_t, reward_t, done_t, info_t = env.last()
         if done_t:
-            return
+            return False
 
         # replace this with policy
         action_t = env.action_space(agent).sample()
@@ -62,28 +77,51 @@ class AgentTrainer:
         state_tp1 = env.observe(agent)
         action_tp1 = env.action_space(agent).sample()
 
-        self._add_to_replay(
-            agent,
-            [
-                self.transform_state(state_t),
-                action_t,
-                reward_t,
-                self.transform_state(state_tp1),
-                action_tp1,
-                done_t,
-            ],
-        )
+        return [
+            self.transform_state(state_t),
+            action_t,
+            reward_t,
+            self.transform_state(state_tp1),
+            action_tp1,
+            done_t,
+        ]
 
     def _train_samples(self, agent):
+        samples = self.replay_buffers.get(agent).sample()
+        samples = [
+            np.vstack(samples[:, replay_idx])
+            for replay_idx in range(samples.shape[-1])
+        ]
+        samples[0] = self._normalize_state(samples[0], agent)
+        samples[3] = self._normalize_state(samples[3], agent)
 
-        return NotImplemented
+        batch_samples = self._get_batch_memories(samples)
+        self.agents[agent].train_model(batch_samples)
 
-    def _add_to_replay(self, agent, memory):
-        self.replay_buffers.get(agent).push(memory)
+    def _add_expected_to_replay(self, memories):
+        for agent, memory in memories.items():
+            expected_return = np.expand_dims(
+                compute_expected_return(
+                    memory[:, 2], self.agents.get(agent).gamma
+                ),
+                1,
+            )
+            memory = list(np.concatenate((memory, expected_return), 1))
+            self.replay_buffers.get(agent).push(memory)
+
+    def _normalize_state(self, state, agent):
+        return normalize_array(
+            state,
+            self.transform_state(self.env.observation_space(agent).low),
+            self.transform_state(self.env.observation_space(agent).high),
+        )
 
     def transform_state(self, state):
         if self._state_transformations:
             return self._state_transformations(state)
+
+    def _get_batch_memories(self, samples: List[np.ndarray]):
+        return BatchMemories(*samples)
 
 
 if __name__ == "__main__":

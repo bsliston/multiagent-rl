@@ -17,7 +17,7 @@ def make_env():
     return pong_v2.env(num_players=2)
 
 
-def initialize_agents(env, device, batch_size, learning_rate, gamma):
+def initialize_agents(env, device, learning_rate, gamma):
     agents = {}
     for agent_name in env.possible_agents:
         observation_space = np.prod(env.observation_space(agent_name).shape)
@@ -26,17 +26,18 @@ def initialize_agents(env, device, batch_size, learning_rate, gamma):
             observation_space,
             action_space,
             device,
-            batch_size=batch_size,
             learning_rate=learning_rate,
             gamm=gamma,
         )
     return agents
 
 
-def initialize_replay(env, max_memories):
+def initialize_replay(env, max_memories, batch_size):
     agent_replays = {}
     for agent_name in env.possible_agents:
-        agent_replays[agent_name] = ReplayBuffer(max_memories=max_memories)
+        agent_replays[agent_name] = ReplayBuffer(
+            max_memories=max_memories, batch_size=batch_size
+        )
     return agent_replays
 
 
@@ -45,12 +46,11 @@ def main(args):
     agents = initialize_agents(
         env,
         args.device,
-        args.batch_size,
         args.learning_rate,
         args.gamma,
     )
 
-    replay_buffers = initialize_replay(env, args.max_replay)
+    replay_buffers = initialize_replay(env, args.max_replay, args.batch_size)
 
     trainer = AgentTrainer(
         agents,
@@ -70,10 +70,10 @@ def parse_args():
         description="Arguments for training pong environment"
     )
     parser.add_argument("--device", type=str, default="cpu")
-    parser.add_argument("--batch-size", type=int, default=64)
+    parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--learning-rate", type=float, default=5e-4)
     parser.add_argument("--gamma", type=float, default=0.99)
-    parser.add_argument("--max-replay", type=int, default=int(5e4))
+    parser.add_argument("--max-replay", type=int, default=int(1e4))
     parser.add_argument("--update-interval", type=int, default=4)
     parser.add_argument("--number-episodes", type=int, default=int(1e5))
 
