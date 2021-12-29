@@ -2,7 +2,11 @@ from typing import Dict, Optional, List
 import numpy as np
 
 from multiagent.types import BatchMemories
-from multiagent.common.computations import compute_expected_return
+from multiagent.common.utils import (
+    extend_summary_logs_list,
+    get_average_summary_logs,
+)
+from multiagent.common.computationss import compute_expected_return
 from multiagent.common.transformations import normalize_array
 
 import pdb
@@ -43,10 +47,14 @@ class AgentTrainer:
         self.env.reset()
         time: int = 1
         memories = {agent: [] for agent in self.agent_keys}
+        training_summary = {agent: {} for agent in self.agent_keys}
         for agent in self.env.agent_iter():
             memory = self.run_step(self.env, agent)
             if memory:
                 memories[agent].append(memory)
+                extend_summary_logs_list(
+                    training_summary[agent], {"env/reward": memory[2]}
+                )
             else:
                 break
 
@@ -58,11 +66,14 @@ class AgentTrainer:
             if (time % self.update_interval == 0) and self.replay_buffers.get(
                 agent
             ).is_enough_samples():
-                self._train_samples(agent)
+                extend_summary_logs_list(
+                    training_summary[agent], self._train_samples(agent)
+                )
 
         self._add_expected_to_replay(
             {key: np.array(val) for key, val in memories.items()}
         )
+        return get_average_summary_logs(training_summary)
 
     def run_step(self, env, agent):
         state_t, reward_t, done_t, info_t = env.last()
@@ -86,7 +97,7 @@ class AgentTrainer:
             done_t,
         ]
 
-    def _train_samples(self, agent):
+    def _train_samples(self, agent) -> Dict[str, float]:
         samples = self.replay_buffers.get(agent).sample()
         samples = [
             np.vstack(samples[:, replay_idx])
@@ -96,7 +107,7 @@ class AgentTrainer:
         samples[3] = self._normalize_state(samples[3], agent)
 
         batch_samples = self._get_batch_memories(samples)
-        self.agents[agent].train_model(batch_samples)
+        return self.agents[agent].train_model(batch_samples)
 
     def _add_expected_to_replay(self, memories):
         for agent, memory in memories.items():

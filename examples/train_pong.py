@@ -1,4 +1,3 @@
-from typing import Tuple
 import numpy as np
 from pettingzoo.atari import pong_v2
 
@@ -14,7 +13,9 @@ import pdb
 
 
 def make_env():
-    return pong_v2.env(num_players=2)
+    return pong_v2.env(
+        obs_type="grayscale_image", num_players=2, full_action_space=False
+    )
 
 
 def initialize_agents(env, device, learning_rate, gamma):
@@ -62,7 +63,8 @@ def main(args):
 
     for episode in range(args.number_episodes):
         print("Episode {}".format(episode))
-        trainer.train_episode()
+        logs = trainer.train_episode()
+        print("\t", logs)
 
 
 def parse_args():

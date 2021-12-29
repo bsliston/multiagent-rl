@@ -1,7 +1,6 @@
-import numpy as np
+from typing import Dict
 import torch
 from torch import nn
-from torch.distributions import categorical
 
 from multiagent.types import BatchMemories
 from multiagent.common.utils import torch_to_numpy, numpy_to_torch_float
@@ -35,7 +34,7 @@ class a2c:
 
         self.MSELoss = nn.MSELoss()
 
-    def train_model(self, batch_memories: BatchMemories):
+    def train_model(self, batch_memories: BatchMemories) -> Dict[str, float]:
         state_t = batch_memories.state_t
         action_t = batch_memories.action_t
         expected_return_t = batch_memories.expected_return_t
@@ -71,6 +70,12 @@ class a2c:
 
         self.critic_optimizer.step()
         self.actor_optimizer.step()
+
+        return {
+            "loss/loss": loss.item(),
+            "loss/actor-loss": actor_loss.item(),
+            "loss/critic-loss": critic_loss.item(),
+        }
 
     def policy(self, state):
         a_dist = self.actor(numpy_to_torch_float(state, device=self.device))
