@@ -6,7 +6,7 @@ from multiagent.common.utils import (
     extend_summary_logs_list,
     get_average_summary_logs,
 )
-from multiagent.common.computationss import compute_expected_return
+from multiagent.common.computations import compute_expected_return
 from multiagent.common.transformations import normalize_array
 
 import pdb
@@ -73,7 +73,10 @@ class AgentTrainer:
         self._add_expected_to_replay(
             {key: np.array(val) for key, val in memories.items()}
         )
-        return get_average_summary_logs(training_summary)
+        avg_training_summary_logs = {}
+        for agent, summary in training_summary.items():
+            avg_training_summary_logs[agent] = get_average_summary_logs(summary)
+        return avg_training_summary_logs
 
     def run_step(self, env, agent):
         state_t, reward_t, done_t, info_t = env.last()
